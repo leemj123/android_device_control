@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>스마트팜 대시보드</title>
+    <link rel="stylesheet" href="/css/farm-dashboard.css">
+</head>
+<body>
+
+<header class="dashboard-header">
+    <div>
+        <h1 id="farm-name">로딩 중...</h1>
+        <p class="farm-meta" id="farm-meta"></p>
+        <p class="displayed-at" id="displayed-at"></p>
+    </div>
+    <div>
+        <span class="demo-badge">데모 데이터 — 실제 연동 전 목업 화면입니다</span>
+        <p class="header-actions">
+            <button type="button" class="nav-link refresh-btn" id="refresh-btn">새로고침</button>
+            <a class="nav-link" href="/">홈으로</a>
+        </p>
+    </div>
+</header>
+
+<p id="load-error" class="load-error" hidden></p>
+
+<section class="section">
+    <h2>디바이스 텔레메트리</h2>
+    <div class="device-grid" id="device-grid"></div>
+</section>
+
+<section class="section">
+    <h2>센서 데이터 슬롯 (FarmSensorData)</h2>
+    <div class="slot-grid" id="slot-grid"></div>
+</section>
+
+<script src="/js/farm-dashboard.js"></script>
+</body>
+</html>

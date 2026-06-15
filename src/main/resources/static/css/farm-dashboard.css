@@ -1,0 +1,296 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 24px;
+    line-height: 1.6;
+    background: #f4f5f7;
+    color: #222;
+}
+
+a {
+    color: #222;
+}
+
+.dashboard-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.dashboard-header h1 {
+    margin: 0 0 4px;
+    font-size: 1.75rem;
+}
+
+.farm-meta {
+    margin: 0;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.demo-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.displayed-at {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.nav-link {
+    display: inline-block;
+    padding: 10px 16px;
+    background: #222;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.nav-link:hover {
+    background: #444;
+}
+
+.header-actions {
+    margin: 12px 0 0;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.refresh-btn {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.load-error {
+    padding: 12px 16px;
+    background: #f8d7da;
+    color: #721c24;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.section {
+    margin-bottom: 28px;
+}
+
+.section h2 {
+    margin: 0 0 12px;
+    font-size: 1.15rem;
+}
+
+.device-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+@media (min-width: 900px) {
+    .device-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.device-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.device-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.device-key {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.device-meta {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.subsection-title {
+    margin: 16px 0 8px;
+    font-size: 0.95rem;
+    color: #444;
+}
+
+.sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.sensor-card {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 4px solid #ccc;
+}
+
+.sensor-card.status-ok {
+    border-left-color: #28a745;
+}
+
+.sensor-card.status-warning {
+    border-left-color: #ffc107;
+}
+
+.sensor-card.status-error {
+    border-left-color: #dc3545;
+}
+
+.sensor-key {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.sensor-value {
+    margin: 4px 0 0;
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.sensor-type {
+    margin: 2px 0 0;
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.sensor-error {
+    margin: 6px 0 0;
+    font-size: 0.75rem;
+    color: #dc3545;
+}
+
+.actuator-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.actuator-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    background: #eee;
+}
+
+.actuator-badge.state-on {
+    background: #d4edda;
+    color: #155724;
+}
+
+.actuator-badge.state-off {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.network-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 0.9rem;
+}
+
+.rssi-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rssi-bar {
+    width: 80px;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.rssi-bar-fill {
+    height: 100%;
+    background: #28a745;
+    border-radius: 4px;
+}
+
+.error-panel {
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.error-panel.none {
+    background: #d4edda;
+    color: #155724;
+}
+
+.error-panel.has-errors {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.error-item {
+    margin: 6px 0 0;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+}
+
+.error-item:first-child {
+    margin-top: 0;
+}
+
+.slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.slot-card {
+    background: #fff;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    color: #888;
+}
+
+.slot-card strong {
+    display: block;
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 4px;
+}
