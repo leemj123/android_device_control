@@ -1,5 +1,6 @@
 package com.lee.android_device_control.farm.service;
 
+import com.lee.android_device_control.farm.dto.TempSignRequest;
 import com.lee.android_device_control.farm.web.ActuatorView;
 import com.lee.android_device_control.farm.web.DeviceTelemetryView;
 import com.lee.android_device_control.farm.web.ErrorView;
@@ -8,13 +9,21 @@ import com.lee.android_device_control.farm.web.FarmView;
 import com.lee.android_device_control.farm.web.NetworkView;
 import com.lee.android_device_control.farm.web.SensorReadingView;
 import com.lee.android_device_control.farm.web.SensorSlotView;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Slf4j
 public class FarmDashboardMockService {
+
+    ObjectMapper objectMapper;
+    public void getEsp32StatusLog(TempSignRequest tempSignRequest) {
+        log.info(objectMapper.writeValueAsString(tempSignRequest));
+    }
 
     public FarmDashboardResponse getDashboard() {
         LocalDateTime now = LocalDateTime.now();
