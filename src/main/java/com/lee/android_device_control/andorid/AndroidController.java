@@ -15,7 +15,7 @@ import java.net.http.HttpResponse;
 @RequiredArgsConstructor
 public class AndroidController {
 
-    private final AndroidService androidService;
+//    private final AndroidService androidService;
 
 //    @PostMapping("/api/android/login")
 //    public HttpResponse<?> deviceLogin(@RequestBody AndroidLoginReq androidLoginReq) {
@@ -26,8 +26,8 @@ public class AndroidController {
 //
 //    }
 
-    @PostMapping("/api/android/status")
-    public void statusLoad(@RequestBody AndroidStatusReq androidStatusReq) {
-        androidService.statusLoader(androidStatusReq);
-    }
+//    @PostMapping("/api/android/status")
+//    public void statusLoad(@RequestBody AndroidStatusReq androidStatusReq) {
+//        androidService.statusLoader(androidStatusReq);
+//    }
 }
