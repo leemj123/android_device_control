@@ -1,59 +1,2158 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>odong_farm</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2f9e44" />
+    <title>스마트팜 대시보드</title>
     <style>
-        body {
-            font-family: sans-serif;
-            width: 100vw;
-            height: auto;
-            line-height: 1.6;
-            position: relative;
+        /* =============================================================
+           스마트팜 대시보드 — style.css
+           모바일 우선 · flex 기반 레이아웃 · 화려함보다 가독성/밀도 우선
+           레이아웃은 전부 flex 로 구성되어 있어 화면 폭에 따라 자동 재배치됩니다.
+           ============================================================= */
+
+        :root {
+            --bg: #f4f7f3;
+            --surface: #ffffff;
+            --surface-2: #eef3ec;
+            --border: #dce4da;
+            --text: #1b241b;
+            --muted: #6b7a6d;
+            --accent: #2f9e44;
+            --accent-weak: #e7f5ea;
+            --danger: #d93b3b;
+            --danger-weak: #fdeaea;
+            --warn: #e8590c;
+            --grid: rgba(110, 130, 110, 0.20);
+            --shadow: 0 1px 2px rgba(18, 28, 18, 0.05), 0 6px 16px rgba(18, 28, 18, 0.05);
+            --radius: 14px;
+            --radius-sm: 10px;
+            --gap: 12px;
+            --pad: 14px;
+
+            /* 지표별 색상 (config.js 의 color 와 맞춰 두면 일관성이 유지됩니다) */
+            --c-temp: #e8590c;
+            --c-hum: #1c7ed6;
+            --c-lux: #f08c00;
+            --c-water: #0ca678;
+            --c-led: #f59f00;
+            --c-pump: #1c7ed6;
         }
-        .area-controller {
-            flex: 1;
-            position: relative;
-            width: 100%;
-            max-width: 500px;
-            height: auto;
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #12160f;
+                --surface: #1b211a;
+                --surface-2: #232b21;
+                --border: #313b2f;
+                --text: #e8eee6;
+                --muted: #97a697;
+                --accent: #51cf66;
+                --accent-weak: #1d2b1f;
+                --danger: #ff8787;
+                --danger-weak: #2a1c1c;
+                --grid: rgba(160, 180, 160, 0.18);
+                --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px rgba(0, 0, 0, 0.32);
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo",
+            "Malgun Gothic", "Noto Sans KR", Roboto, sans-serif;
+            font-size: 15px;
+            line-height: 1.45;
+            -webkit-text-size-adjust: 100%;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ------------------------------ topbar ------------------------------ */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px var(--pad);
+            padding-top: calc(10px + env(safe-area-inset-top, 0px));
+            background: color-mix(in srgb, var(--surface) 92%, transparent);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .brand-logo { font-size: 24px; line-height: 1; }
+        .brand-text { min-width: 0; }
+        .brand-text h1 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conn {
+            margin: 2px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .conn-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--muted);
+            flex: 0 0 auto;
+        }
+        .conn[data-state="online"] .conn-dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+        .conn[data-state="offline"] .conn-dot { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-weak); }
+        .conn[data-state="loading"] .conn-dot { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .icon-btn {
+            flex: 0 0 auto;
+            width: 40px; height: 40px;
+            display: grid; place-items: center;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            background: var(--surface);
+            color: var(--text);
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        .icon-btn:hover { background: var(--surface-2); }
+        .icon-btn:active { transform: scale(0.94); }
+        .icon-btn.spinning span { display: inline-block; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ------------------------------ 기간 선택 ------------------------------ */
+        .range-bar {
+            position: sticky;
+            top: 61px;
+            z-index: 19;
+            display: flex;
+            gap: 6px;
+            padding: 8px var(--pad);
+            background: color-mix(in srgb, var(--bg) 88%, transparent);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .range-bar::-webkit-scrollbar { display: none; }
+
+        .range-btn {
+            flex: 0 0 auto;
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .range-btn:hover { color: var(--text); border-color: var(--muted); }
+        .range-btn[aria-pressed="true"] {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        /* ------------------------------ 레이아웃 ------------------------------ */
+        main {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            gap: 20px;
+            padding: var(--pad);
+            padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+            max-width: 1200px;
             margin: 0 auto;
+            width: 100%;
         }
-        .download {
-            display: inline-block;
-            padding: 14px 20px;
-            background: #222;
-            color: white;
-            text-decoration: none;
+
+        .section { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+        .section-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 0 2px;
+        }
+        .section-head h2 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            color: var(--text);
+        }
+        .muted { color: var(--muted); font-size: 12px; }
+
+        /* 핵심: 모든 카드 그리드는 flex + wrap. min-width 만 바꾸면 배치가 바뀝니다. */
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--gap);
+            align-items: stretch;
+            min-width: 0;
+        }
+        .grid > * { min-width: 0; }
+        .grid--summary > * { flex: 1 1 128px; }
+        .grid--chart   > * { flex: 1 1 100%; }
+        .grid--control > * { flex: 1 1 100%; }
+
+        @media (min-width: 640px) {
+            :root { --pad: 18px; --gap: 14px; }
+            .grid--chart > * { flex: 1 1 calc(50% - var(--gap)); }
+            .grid--control > * { flex: 1 1 260px; }
+        }
+        @media (min-width: 1000px) {
+            .grid--chart > * { flex: 1 1 calc(50% - var(--gap)); }
+            .grid--summary > * { flex: 1 1 150px; }
+        }
+
+        /* ------------------------------ 카드 ------------------------------ */
+        .card {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: var(--pad);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            min-width: 0;
+        }
+
+        .card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            min-width: 0;
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+        }
+        .card-title h3 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-ico { font-size: 15px; line-height: 1; }
+
+        /* 요약 카드 */
+        .summary-card { gap: 6px; padding: 12px; }
+        .summary-value {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .summary-value strong {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.6px;
+            font-variant-numeric: tabular-nums;
+        }
+        .summary-value .unit { font-size: 12px; color: var(--muted); font-weight: 600; }
+        .summary-sub {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--muted);
+            min-height: 16px;
+        }
+        .trend {
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+        .trend.up { color: var(--warn); }
+        .trend.down { color: var(--c-hum); }
+        .trend.flat { color: var(--muted); }
+
+        /* 그래프 카드 헤더의 현재값 */
+        .card-live {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            flex: 0 0 auto;
+            font-variant-numeric: tabular-nums;
+        }
+        .card-live strong { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; }
+        .card-live .unit { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+        .chart-wrap {
+            position: relative;
+            width: 100%;
+            min-width: 0;
+        }
+        .chart-wrap canvas { display: block; width: 100%; }
+
+        .card-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--muted);
+            flex-wrap: wrap;
+        }
+
+        /* ------------------------------ 이분법 타임라인 ------------------------------ */
+        .timeline {
+            display: flex;
+            width: 100%;
+            height: 30px;
             border-radius: 8px;
-            margin-top: 20px;
+            overflow: hidden;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+        }
+        .tl-seg {
+            min-width: 1px;
+            height: 100%;
+            transition: background 0.2s ease;
+        }
+        .tl-seg.on { background: var(--seg-color, var(--accent)); }
+        .tl-seg.off { background: repeating-linear-gradient(
+                135deg,
+                var(--surface-2),
+                var(--surface-2) 4px,
+                color-mix(in srgb, var(--border) 70%, transparent) 4px,
+                color-mix(in srgb, var(--border) 70%, transparent) 8px
+        );
+        }
+
+        .tl-axis {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            font-size: 10px;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-swatch {
+            width: 10px; height: 10px;
+            border-radius: 3px;
+            flex: 0 0 auto;
+        }
+        .legend-item b { font-variant-numeric: tabular-nums; font-weight: 700; }
+        .legend-item .legend-pct { color: var(--muted); font-size: 11px; }
+
+        /* ------------------------------ 스위치 ------------------------------ */
+        .control-card { gap: 12px; }
+        .control-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-width: 0;
+        }
+        .control-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .control-ico {
+            width: 38px; height: 38px;
+            display: grid; place-items: center;
+            border-radius: 10px;
+            background: var(--surface-2);
+            font-size: 18px;
+            flex: 0 0 auto;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .control-card[data-state="on"] .control-ico { background: var(--accent-weak); }
+        .control-name { display: flex; flex-direction: column; min-width: 0; }
+        .control-name strong { font-size: 15px; font-weight: 700; }
+        .control-name span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+        /* 접근성: 실제 checkbox 를 시각적으로만 스위치처럼 표현 */
+        .switch { position: relative; flex: 0 0 auto; display: inline-flex; }
+        .switch input {
+            position: absolute;
+            inset: 0;
+            width: 100%; height: 100%;
+            margin: 0;
+            opacity: 0;
             cursor: pointer;
         }
+        .switch input:disabled { cursor: wait; }
+        .switch-track {
+            width: 56px; height: 32px;
+            border-radius: 999px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            position: relative;
+            transition: background 0.2s ease;
+            pointer-events: none;
+        }
+        .switch-thumb {
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+            transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+        }
+        .switch input:checked ~ .switch-track { background: var(--accent); border-color: var(--accent); }
+        .switch input:checked ~ .switch-track .switch-thumb { transform: translateX(24px); }
+        .switch input:focus-visible ~ .switch-track { outline: 3px solid var(--accent-weak); outline-offset: 2px; }
+        .switch input:disabled ~ .switch-track { opacity: 0.55; }
+        .switch input:disabled ~ .switch-track .switch-thumb { animation: pulse 1s ease-in-out infinite; }
+
+        .control-foot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--muted);
+            flex-wrap: wrap;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            background: var(--surface-2);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+        .badge.on { background: var(--accent-weak); color: var(--accent); border-color: transparent; }
+        .badge.manual { background: #fff4e6; color: var(--warn); border-color: transparent; }
+        @media (prefers-color-scheme: dark) {
+            .badge.manual { background: #33260f; color: #ffc078; }
+        }
+
+        /* ------------------------------ 상태 표시 / 토스트 ------------------------------ */
+        .skeleton {
+            background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s linear infinite;
+            border-radius: 6px;
+            color: transparent !important;
+        }
+        @keyframes shimmer { to { background-position: -200% 0; } }
+
+        .footer {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 4px var(--pad) calc(20px + env(safe-area-inset-bottom, 0px));
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+        }
+        .footer-sep { opacity: 0.5; }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+            transform: translate(-50%, 20px);
+            max-width: calc(100vw - 32px);
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: #22301f;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 100;
+        }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+        .toast[data-kind="error"] { background: var(--danger); }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+
     </style>
 </head>
 <body>
-<div class="area-controller">
-    <h1>Offline Advent Android Agent</h1>
+<header class="topbar">
+    <div class="brand">
+        <span class="brand-logo" aria-hidden="true">🌱</span>
+        <div class="brand-text">
+            <h1>스마트팜 대시보드</h1>
+            <p class="conn" id="conn-status" data-state="loading">
+                <span class="conn-dot" aria-hidden="true"></span><span id="conn-text">연결 중…</span>
+            </p>
+        </div>
+    </div>
+    <button id="refresh-btn" class="icon-btn" type="button" title="새로고침" aria-label="새로고침">
+        <span aria-hidden="true">⟳</span>
+    </button>
+</header>
 
-    <p>안드로이드 중간 단말 테스트 앱입니다.</p>
-    <p>아래 버튼을 눌러 APK를 다운로드하세요.</p>
+<nav class="range-bar" id="range-bar" aria-label="조회 기간 선택"></nav>
 
-    <a class="download" href="/apk/odong-agent-0.0.1.1.apk" download>
-        APK 다운로드
-    </a>
+<main id="app">
+    <section class="section">
+        <div class="section-head">
+            <h2>현재 상태</h2>
+            <span class="muted" id="last-updated">—</span>
+        </div>
+        <div id="summary-cards" class="grid grid--summary"></div>
+    </section>
 
-    <hr>
+    <section class="section">
+        <div class="section-head">
+            <h2>환경 모니터링</h2>
+            <span class="muted" id="chart-hint">—</span>
+        </div>
+        <div id="analog-cards" class="grid grid--chart"></div>
+    </section>
 
-    <p><a class="download" href="/farm">스마트팜 대시보드</a></p>
+    <!-- <section class="section">
+      <div class="section-head">
+        <h2>점등 · 작동 상태</h2>
+        <span class="muted">켜짐 / 꺼짐 이분법</span>
+      </div>
+      <div id="binary-cards" class="grid grid--chart"></div>
+    </section>
 
-    <hr>
+    <section class="section">
+      <div class="section-head">
+        <h2>작동 시간</h2>
+        <span class="muted">구간별 누적</span>
+      </div>
+      <div id="runtime-cards" class="grid grid--chart"></div>
+    </section>
 
-    <p>설치 후 앱을 실행하고 서버 주소를 입력하세요.</p>
-    <p>예: http://192.168.219.102:40030</p>
-</div>
+    <section class="section">
+      <div class="section-head">
+        <h2>제어</h2>
+        <span class="muted">릴레이 스위치</span>
+      </div>
+      <div id="control-cards" class="grid grid--control"></div>
+    </section> -->
+</main>
 
+<footer class="footer">
+    <span id="api-mode">—</span>
+    <span class="footer-sep" aria-hidden="true">·</span>
+    <span id="poll-info">—</span>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<noscript>
+    <p style="padding:16px">이 대시보드는 자바스크립트가 필요합니다.</p>
+</noscript>
+
+<script>
+
+    /* ============================ js/utils.js ============================ */
+    /**
+     * utils.js — 순수 포맷 유틸. 의존성 없음.
+     */
+
+    const pad2 = (n) => String(n).padStart(2, '0');
+
+    /** 숫자 포맷. 값이 없으면 '--' */
+    function formatNumber(value, precision = 0) {
+        if (value === null || value === undefined || Number.isNaN(value)) return '--';
+        return Number(value).toFixed(precision);
+    }
+
+    /** 축 눈금용 짧은 시각 라벨 */
+    function formatTick(ts, axis = 'time') {
+        const d = new Date(ts);
+        if (axis === 'date') return `${d.getMonth() + 1}/${d.getDate()}`;
+        return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }
+
+    /** 사람이 읽는 전체 시각 */
+    function formatDateTime(ts) {
+        if (!ts) return '--';
+        const d = new Date(ts);
+        return `${d.getMonth() + 1}월 ${d.getDate()}일 ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }
+
+    /** 분 단위 → "3시간 20분" */
+    function formatDuration(minutes) {
+        const total = Math.max(0, Math.round(minutes || 0));
+        const h = Math.floor(total / 60);
+        const m = total % 60;
+        if (h > 0) return `${h}시간 ${pad2(m)}분`;
+        return `${m}분`;
+    }
+
+    /** 상대 시간: "12초 전" */
+    function relativeTime(ts) {
+        if (!ts) return '--';
+        const sec = Math.max(0, Math.round((Date.now() - ts) / 1000));
+        if (sec < 60) return `${sec}초 전`;
+        const min = Math.round(sec / 60);
+        if (min < 60) return `${min}분 전`;
+        const hr = Math.round(min / 60);
+        if (hr < 24) return `${hr}시간 전`;
+        return `${Math.round(hr / 24)}일 전`;
+    }
+
+    /** 값 → 상승/하락/보합 판정 */
+    function trendOf(current, previous) {
+        if (current === null || previous === null || current === undefined || previous === undefined) {
+            return { dir: 'flat', delta: 0 };
+        }
+        const delta = current - previous;
+        const threshold = Math.abs(previous) * 0.005 + 1e-6;
+        if (Math.abs(delta) < threshold) return { dir: 'flat', delta: 0 };
+        return { dir: delta > 0 ? 'up' : 'down', delta };
+    }
+
+    /** 분 → 타임라인용 비율(0~1) 계산 */
+    function ratio(part, whole) {
+        if (!whole) return 0;
+        return Math.max(0, Math.min(1, part / whole));
+    }
+
+    /** DOM 헬퍼: 속성/자식까지 한 번에 */
+    function h(tag, attrs = {}, children = []) {
+        const el = document.createElement(tag);
+        for (const [key, value] of Object.entries(attrs)) {
+            if (value === null || value === undefined || value === false) continue;
+            if (key === 'class') el.className = value;
+            else if (key === 'text') el.textContent = value;
+            else if (key === 'html') el.innerHTML = value;
+            else if (key === 'style' && typeof value === 'object') {
+                // CSS 사용자 정의 속성(--x)은 Object.assign 으로 설정되지 않으므로 setProperty 사용
+                for (const [prop, propValue] of Object.entries(value)) {
+                    if (prop.startsWith('--')) el.style.setProperty(prop, propValue);
+                    else el.style[prop] = propValue;
+                }
+            }
+            else if (key.startsWith('on') && typeof value === 'function') {
+                el.addEventListener(key.slice(2).toLowerCase(), value);
+            } else if (value === true) el.setAttribute(key, '');
+            else el.setAttribute(key, value);
+        }
+        for (const child of [].concat(children)) {
+            if (child === null || child === undefined) continue;
+            el.append(child instanceof Node ? child : document.createTextNode(String(child)));
+        }
+        return el;
+    }
+
+    /* ============================ js/config.js ============================ */
+    /**
+     * =============================================================================
+     *  config.js — 대시보드의 "설계도" (유일한 확장 지점)
+     * =============================================================================
+     *
+     *  센서를 추가하거나 장치를 추가할 때 코드를 고칠 필요가 없습니다.
+     *  아래 배열에 항목 "하나"를 추가하면
+     *  요약 카드 / 그래프 카드 / 타임라인 / 스위치 / 폴링 이 fetch 까지 전부 자동으로 붙습니다.
+     *
+     *  ---------------------------------------------------------------------------
+     *  [1] 새 센서(측정값) 추가 예시 — 토양 EC 센서
+     *  ---------------------------------------------------------------------------
+     *    {
+     *      id: 'soil_ec',              // 필수 · 고유 ID. 백엔드 응답 키와 동일하게 맞추면 편함
+     *      name: '토양 EC',            // 필수 · 화면 표기명
+     *      icon: '🧪',                 // 선택 · 이모지 아이콘
+     *      unit: 'dS/m',               // 선택 · 단위
+     *      precision: 2,               // 선택 · 소수 자릿수
+     *      color: '#9c36b5',           // 선택 · 그래프 선 색
+     *      kind: 'analog',             // 'analog' | 'binary' | 'runtime'
+     *      render: 'line',             // 'line' | 'bar' | 'timeline'
+     *      inSummary: true,            // '현재 상태' 카드에도 표시할지
+     *      yMin: 0, yMax: 4,           // 선택 · 그래프 축 고정 (null 이면 자동 스케일)
+     *    }
+     *
+     *  ---------------------------------------------------------------------------
+     *  [2] 새 스위치(제어) 추가 예시 — 양액 펌프
+     *  ---------------------------------------------------------------------------
+     *    { id: 'nutrient_pump', name: '양액 펌프', icon: '🧴', channel: 'relay-03' }
+     *
+     *  장치를 추가하면 제어 카드가 자동 생성됩니다.
+     *  런타임/이분법 지표에서 같은 id 를 `device` 로 참조하면
+     *  스위치 조작이 그래프/타임라인에 즉시 반영됩니다.
+     *
+     *  ---------------------------------------------------------------------------
+     *  kind 별 의미
+     *  ---------------------------------------------------------------------------
+     *    analog   : 온도/습도/광량/물온도처럼 연속값      → 선 그래프
+     *    binary   : 켜짐/꺼짐 두 가지 상태               → flex 타임라인(이분법)
+     *    runtime  : 구간별 "작동한 시간(분)" 누적         → 막대 그래프
+     *
+     *  render 를 바꾸면 같은 데이터를 다른 모양으로 그립니다.
+     *  (예: 물온도를 runtime 으로 두고 render:'bar' → 막대 그래프)
+     * =============================================================================
+     */
+
+    /* ------------------------------------------------------------------ */
+    /* API / 통신 설정                                                     */
+    /* ------------------------------------------------------------------ */
+    const API_CONFIG = {
+        /** true = 내장 mock (백엔드 없이 즉시 동작) / false = 실제 fetch 사용 */
+        useMock: false,
+        /** 실제 백엔드 base URL. js/api.js 에서 사용됩니다. */
+        baseUrl: 'http://127.0.0.1:8080/api',
+        /** 실시간 현재값 폴링 주기 (ms). 그래프는 기간 변경/수동 새로고침 시에만 갱신 */
+        pollIntervalMs: 30_000,
+        /** mock 전용: 제어 실패 확률(0~1). 0.15 등으로 올리면 롤백 동작을 테스트할 수 있습니다 */
+        mockFailureRate: 0,
+    };
+
+    /* ------------------------------------------------------------------ */
+    /* 조회 기간(버킷)                                                     */
+    /* ------------------------------------------------------------------ */
+    const RANGES = {
+        '10m': { id: '10m', label: '10분 단위', short: '10분', bucketMinutes: 10, bucketCount: 36, axis: 'time' },
+        '1h':  { id: '1h',  label: '시간 단위', short: '시간', bucketMinutes: 60, bucketCount: 48, axis: 'time' },
+        '1d':  { id: '1d',  label: '일 단위',   short: '일',   bucketMinutes: 1440, bucketCount: 14, axis: 'date' },
+    };
+    const DEFAULT_RANGE = '1h'; // 10분 단위 = 최근 6시간, 시간 = 최근 48시간, 일 = 최근 14일
+
+    /* ------------------------------------------------------------------ */
+    /* 지표(Metric) 레지스트리                                             */
+    /* ------------------------------------------------------------------ */
+    const hourOf = (d) => d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+    const minuteOfDay = (d) => d.getHours() * 60 + d.getMinutes();
+
+    /** mock 전용 점등 스케줄 함수들. 실제 백엔드에서는 쓰이지 않습니다. */
+    const MOCK_SCHEDULES = {
+        /** LED: 06:00 ~ 22:00 점등 (16시간) */
+        led: (d) => {
+            const h = hourOf(d);
+            return h >= 6 && h < 22;
+        },
+        /** 수력모터: 하루 4회, 10분씩 (03:00 / 09:00 / 15:00 / 21:00) */
+        pump: (d) => {
+            const m = minuteOfDay(d);
+            return (m >= 180 && m < 190) || (m >= 540 && m < 550) || (m >= 900 && m < 910) || (m >= 1260 && m < 1270);
+        },
+    };
+
+    const METRICS = [
+        /* ---------------------- 1) 연속값 (analog) ---------------------- */
+        {
+            id: 'temperature', name: '온도', icon: '🌡️', unit: '°C',
+            precision: 1, color: '#e8590c',
+            kind: 'analog', render: 'line', inSummary: true,
+            yMin: null, yMax: null,
+            mockRange: [18, 31],
+            mock: (d) => 24 + 6 * Math.sin((hourOf(d) - 9) / 24 * 2 * Math.PI),
+        },
+        {
+            id: 'humidity', name: '습도', icon: '💧', unit: '%',
+            precision: 0, color: '#1c7ed6',
+            kind: 'analog', render: 'line', inSummary: true,
+            yMin: 0, yMax: 100,
+            mockRange: [45, 85],
+            mock: (d) => 65 - 14 * Math.sin((hourOf(d) - 9) / 24 * 2 * Math.PI),
+        },
+        {
+            id: 'lux', name: '광량', icon: '☀️', unit: 'lux',
+            precision: 0, color: '#f08c00',
+            kind: 'analog', render: 'line', inSummary: true,
+            yMin: 0, yMax: null,
+            mockRange: [0, 14000],
+            mock: (d) => {
+                const h = hourOf(d);
+                if (!MOCK_SCHEDULES.led(d)) return 40 + 15 * Math.sin(h); // 야간 환경광
+                return 13500 * Math.pow(Math.sin(((h - 6) / 16) * Math.PI), 0.85);
+            },
+        },
+        {
+            id: 'water_temp', name: '물온도', icon: '🌊', unit: '°C',
+            precision: 1, color: '#0ca678',
+            kind: 'analog', render: 'line', inSummary: true,
+            yMin: null, yMax: null,
+            mockRange: [17, 24],
+            // 수온은 열관성 때문에 기온보다 2시간 정도 늦게 반응
+            mock: (d) => 20.5 + 2.6 * Math.sin((hourOf(d) - 11) / 24 * 2 * Math.PI),
+        },
+
+        /* ---------------------- 2) 이분법 (binary) ---------------------- */
+        {
+            id: 'led_state', name: 'LED 점등 상태', icon: '💡', unit: '',
+            color: '#f59f00',
+            kind: 'binary', render: 'timeline', device: 'led',
+            onLabel: '켜짐', offLabel: '꺼짐',
+            mockSchedule: MOCK_SCHEDULES.led,
+        },
+        {
+            id: 'pump_state', name: '수력모터 작동 상태', icon: '⚙️', unit: '',
+            color: '#1c7ed6',
+            kind: 'binary', render: 'timeline', device: 'pump',
+            onLabel: '작동', offLabel: '정지',
+            mockSchedule: MOCK_SCHEDULES.pump,
+        },
+
+        /* ---------------------- 3) 작동 시간 (runtime) ---------------------- */
+        {
+            id: 'led_runtime', name: 'LED 점등 시간', icon: '💡', unit: '분',
+            precision: 0, color: '#f59f00',
+            kind: 'runtime', render: 'bar', inSummary: true, device: 'led',
+            mockSchedule: MOCK_SCHEDULES.led,
+        },
+        {
+            id: 'pump_runtime', name: '수력모터 작동 시간', icon: '⚙️', unit: '분',
+            precision: 0, color: '#1c7ed6',
+            kind: 'runtime', render: 'bar', inSummary: true, device: 'pump',
+            mockSchedule: MOCK_SCHEDULES.pump,
+        },
+    ];
+
+    /* ------------------------------------------------------------------ */
+    /* 장치(Device) 레지스트리 — on/off 스위치                              */
+    /* ------------------------------------------------------------------ */
+    const DEVICES = [
+        {
+            id: 'led',
+            name: 'LED 전등',
+            icon: '💡',
+            channel: 'relay-01',       // 백엔드 릴레이 채널 식별자
+            description: '재배 LED 점등 제어',
+        },
+        {
+            id: 'pump',
+            name: '수력모터',
+            icon: '⚙️',
+            channel: 'relay-02',
+            description: '관수 수력모터 제어',
+        },
+    ];
+
+    /* ------------------------------------------------------------------ */
+    /* 조회 헬퍼                                                           */
+    /* ------------------------------------------------------------------ */
+    const getMetric = (id) => METRICS.find((m) => m.id === id) || null;
+    const getDevice = (id) => DEVICES.find((d) => d.id === id) || null;
+    const metricsByKind = (kind) => METRICS.filter((m) => m.kind === kind);
+    const metricsByRender = (render) => METRICS.filter((m) => m.render === render);
+    const summaryMetrics = () => METRICS.filter((m) => m.inSummary);
+
+    /* ============================ js/api.js ============================ */
+    /**
+     * =============================================================================
+     *  api.js — 데이터 계층 (백엔드 교체 지점)
+     * =============================================================================
+     *
+     *  화면(app.js / components)은 오직 이 파일의 함수만 호출합니다.
+     *  config.js 의 API_CONFIG.useMock 을 false 로 바꾸고
+     *  아래 "실제 백엔드" 주석 블록을 활성화하면 그대로 실서버 연동으로 전환됩니다.
+     *
+     *  ── 제공 함수 (REST 스펙) ───────────────────────────────────────────────────
+     *   getSnapshot()                 → 현재값 + 장치 상태
+     *   getSeries(metricId, rangeId)  → 기간별 시계열 (analog/binary/runtime 공통)
+     *   getDevices()                  → 장치 목록 + 상태
+     *   setDevice(deviceId, on)       → 장치 on/off 제어
+     *
+     *  ── 백엔드가 맞춰야 할 응답 형태 ────────────────────────────────────────────
+     *   GET  /api/snapshot
+     *        { "updatedAt": 1710000000000,
+     *          "metrics": { "temperature": { "value": 23.4, "previous": 23.1 }, ... },
+     *          "devices": [ { "id": "led", "on": true, "mode": "auto", "updatedAt": 1710000000000 } ] }
+     *
+     *   GET  /api/metrics/:metricId/series?range=10m|1h|1d
+     *        analog  → { "kind": "analog",  "unit": "°C", "precision": 1,
+     *                    "points":  [ { "t": 1710000000000, "v": 23.4 }, ... ] }
+     *        runtime → { "kind": "runtime", "unit": "분", "points": [ { "t": ..., "v": 10 }, ... ] }
+     *        binary  → { "kind": "binary",  "segments": [ { "t0": ..., "t1": ..., "state": true }, ... ],
+     *                    "totals": { "onMinutes": 960, "offMinutes": 480 } }
+     *
+     *   POST /api/devices/:deviceId   body { "on": true }
+     *        → { "id": "led", "on": true, "updatedAt": 1710000000000 }
+     * =============================================================================
+     */
+
+
+
+    /* ============================ 공통 유틸 ============================ */
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    /** 네트워크 지연 흉내 (mock 전용) */
+    const latency = () => sleep(160 + Math.random() * 240);
+
+    /** 결정적 난수 — 새로고침해도 같은 그래프가 나오도록 시드 기반 사용 */
+    function mulberry32(seed) {
+        let a = seed >>> 0;
+        return function () {
+            a = (a + 0x6d2b79f5) >>> 0;
+            let t = Math.imul(a ^ (a >>> 15), 1 | a);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    function hashString(str) {
+        let h = 2166136261;
+        for (let i = 0; i < str.length; i += 1) {
+            h ^= str.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+    }
+
+    /* ======================= mock 상태 저장소 ======================= */
+
+    /** 장치 상태: 백엔드의 device 테이블에 해당 */
+    const deviceState = new Map(
+        DEVICES.map((d) => [
+            d.id,
+            { id: d.id, name: d.name, channel: d.channel, on: d.id === 'led', mode: 'auto', updatedAt: null },
+        ]),
+    );
+
+    /** 수동 조작 이력 — mock 그래프에 즉시 반영하기 위한 오버라이드 */
+    const manualOverride = new Map(); // deviceId -> { value:boolean, since:number }
+
+    /** 장치의 시점별 on/off 판정 (mock). 수동 조작이 있으면 그 시점 이후는 조작값을 따름 */
+    function isDeviceOnAt(deviceId, timestampMs) {
+        const override = manualOverride.get(deviceId);
+        if (override && timestampMs >= override.since) return override.value;
+        const device = getDevice(deviceId);
+        const schedule = device ? MOCK_SCHEDULE_BY_DEVICE[deviceId] : null;
+        if (typeof schedule === 'function') return schedule(new Date(timestampMs));
+        return deviceState.get(deviceId)?.on ?? false;
+    }
+
+    /** config 의 mockSchedule 을 장치 id 로 조회 */
+    const MOCK_SCHEDULE_BY_DEVICE = {};
+    for (const metric of METRICS) {
+        if (metric.device && typeof metric.mockSchedule === 'function' && !MOCK_SCHEDULE_BY_DEVICE[metric.device]) {
+            MOCK_SCHEDULE_BY_DEVICE[metric.device] = metric.mockSchedule;
+        }
+    }
+
+    /* ======================= 버킷(시간축) 생성 ======================= */
+
+    function buildBuckets(rangeId) {
+        const range = RANGES[rangeId] || RANGES['1h'];
+        const stepMs = range.bucketMinutes * 60_000;
+        const end = Math.floor(Date.now() / stepMs) * stepMs;
+        const start = end - (range.bucketCount - 1) * stepMs;
+        const buckets = [];
+        for (let i = 0; i < range.bucketCount; i += 1) {
+            buckets.push({ t: start + i * stepMs, ms: stepMs });
+        }
+        return { buckets, start, end, range };
+    }
+
+    /* ======================= 값 생성기 ======================= */
+
+    /** 버킷 구간의 대푯값: 내부를 6등분 샘플링해 평균 (일 단위 버킷도 자연스럽게) */
+    function analogBucketValue(metric, bucket) {
+        const rnd = mulberry32(hashString(metric.id) ^ Math.floor(bucket.t / 60_000));
+        const samples = 6;
+        let sum = 0;
+        let weight = 0;
+        for (let i = 0; i < samples; i += 1) {
+            const t = bucket.t + (bucket.ms * (i + 0.5)) / samples;
+            sum += metric.mock(new Date(t));
+            weight += 1;
+        }
+        const base = sum / weight;
+        const noiseScale = metric.precision === 0 ? 0.02 : 0.015;
+        const jitter = (rnd() - 0.5) * 2 * (base * noiseScale + 0.2);
+        let value = base + jitter;
+        if (metric.mockRange) {
+            value = Math.min(metric.mockRange[1], Math.max(metric.mockRange[0], value));
+        }
+        return value;
+    }
+
+    /** 버킷 구간 동안 장치가 켜져 있던 "분" */
+    function runtimeBucketMinutes(deviceId, bucket) {
+        const stepMs = Math.min(bucket.ms, 60_000); // 최대 1분 해상도로 적분
+        let onMs = 0;
+        for (let t = bucket.t; t < bucket.t + bucket.ms; t += stepMs) {
+            if (isDeviceOnAt(deviceId, t)) onMs += stepMs;
+        }
+        return onMs / 60_000;
+    }
+
+    /**
+     * on/off 상태 세그먼트 추출 (이분법 타임라인용)
+     *  · 기본 1분 해상도로 스캔해 런타임 합계와 일치시킨다
+     *  · 표본이 3만 개를 넘는 긴 구간에서만 성기게 샘플링
+     *  · 마지막 표본은 항상 end(=현재 시각)이므로, 방금 누른 스위치가 즉시 반영된다
+     */
+    function buildSegments(deviceId, start, end) {
+        const MINUTE = 60_000;
+        const spanMinutes = Math.max(1, (end - start) / MINUTE);
+        const stepMinutes = spanMinutes <= 30_000 ? 1 : Math.ceil(spanMinutes / 30_000);
+        const stepMs = stepMinutes * MINUTE;
+
+        const samples = [];
+        for (let t = start; t < end; t += stepMs) samples.push(t);
+        samples.push(end);
+
+        const segments = [];
+        let currentState = isDeviceOnAt(deviceId, samples[0]);
+        let segStart = samples[0];
+
+        for (let i = 1; i < samples.length; i += 1) {
+            const t = samples[i];
+            const state = isDeviceOnAt(deviceId, t);
+            if (state !== currentState) {
+                if (t > segStart) segments.push({ t0: segStart, t1: t, state: currentState });
+                segStart = t;
+                currentState = state;
+            }
+        }
+        segments.push({ t0: segStart, t1: end, state: currentState });
+        return segments;
+    }
+
+    /* ============================================================================
+       실제 백엔드 연동용 헬퍼 (mock 과 동일한 반환 형태를 유지하면 코드 수정 불필요)
+       ============================================================================
+       */
+    async function request(path, options) {
+        const res = await fetch(`${API_CONFIG.baseUrl}${path}`, {
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            ...options,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        return res.json();
+    }
+    /*
+    ============================================================================ */
+
+    /* ============================ 공개 API ============================ */
+
+    /**
+     * 현재값 + 장치 상태 스냅샷
+     * @returns {Promise<{updatedAt:number, metrics:Object, devices:Array}>}
+     */
+    async function getSnapshot() {
+        if (!API_CONFIG.useMock) {
+            return request('/snapshot');
+        }
+        await latency();
+        const now = Date.now();
+
+        const metrics = {};
+        for (const metric of METRICS) {
+            if (metric.kind === 'analog') {
+                const rnd = mulberry32(hashString(metric.id) ^ Math.floor(now / 60_000));
+                const value = metric.mock(new Date(now)) + (rnd() - 0.5) * 0.4;
+                const previous = metric.mock(new Date(now - 10 * 60_000));
+                metrics[metric.id] = { value, previous };
+            } else if (metric.kind === 'binary' && metric.device) {
+                metrics[metric.id] = { state: isDeviceOnAt(metric.device, now) };
+            }
+        }
+
+        const devices = DEVICES.map((d) => {
+            const state = deviceState.get(d.id);
+            return { ...state, channel: d.channel, name: d.name };
+        });
+
+        return { updatedAt: now, metrics, devices };
+    }
+
+    /**
+     * 기간별 시계열. kind 에 따라 points 또는 segments 를 반환합니다.
+     * @param {string} metricId
+     * @param {'10m'|'1h'|'1d'} rangeId
+     */
+    async function getSeries(metricId, rangeId) {
+        if (!API_CONFIG.useMock) {
+            return request(`/metrics/${encodeURIComponent(metricId)}/series?range=${encodeURIComponent(rangeId)}`);
+        }
+        const metric = getMetric(metricId);
+        if (!metric) throw new Error(`알 수 없는 지표: ${metricId}`);
+
+        await latency();
+        const { buckets, start, end, range } = buildBuckets(rangeId);
+        const base = {
+            metricId,
+            rangeId,
+            kind: metric.kind,
+            unit: metric.unit || '',
+            precision: metric.precision ?? 0,
+            axis: range.axis,
+            bucketMinutes: range.bucketMinutes,
+            start,
+            end,
+        };
+
+        if (metric.kind === 'analog') {
+            return { ...base, points: buckets.map((b) => ({ t: b.t, v: analogBucketValue(metric, b) })) };
+        }
+
+        if (metric.kind === 'runtime') {
+            const deviceId = metric.device;
+            return { ...base, points: buckets.map((b) => ({ t: b.t, v: runtimeBucketMinutes(deviceId, b) })) };
+        }
+
+        // binary — 타임라인은 "최근 N시간 ~ 지금" 이므로 끝을 마지막 버킷 경계가 아닌 현재 시각으로 잡는다
+        const deviceId = metric.device;
+        const now = Date.now();
+        const segments = buildSegments(deviceId, start, now);
+        const onMinutes = segments.reduce((acc, s) => (s.state ? acc + (s.t1 - s.t0) / 60_000 : acc), 0);
+        const totalMinutes = (now - start) / 60_000;
+        return {
+            ...base,
+            end: now,
+            segments,
+            currentOn: isDeviceOnAt(deviceId, now),
+            totals: { onMinutes, offMinutes: totalMinutes - onMinutes, totalMinutes },
+        };
+    }
+
+    /** 장치 목록 + 현재 상태 */
+    async function getDevices() {
+        if (!API_CONFIG.useMock) {
+            return request('/devices');
+        }
+        await latency();
+        return DEVICES.map((d) => ({ ...deviceState.get(d.id), channel: d.channel, name: d.name }));
+    }
+
+    /**
+     * 장치 on/off 제어.
+     * @param {string} deviceId
+     * @param {boolean} on
+     * @returns {Promise<{id:string, on:boolean, mode:'manual', updatedAt:number}>}
+     */
+    async function setDevice(deviceId, on) {
+        if (!API_CONFIG.useMock) {
+            return request(`/devices/${encodeURIComponent(deviceId)}`, {
+                method: 'POST',
+                body: JSON.stringify({ on }),
+            });
+        }
+        await latency();
+
+        if (Math.random() < (API_CONFIG.mockFailureRate || 0)) {
+            throw new Error('장치 응답 없음 (timeout)');
+        }
+
+        const device = getDevice(deviceId);
+        if (!device) throw new Error(`알 수 없는 장치: ${deviceId}`);
+
+        const next = { on: Boolean(on), mode: 'manual', updatedAt: Date.now() };
+        deviceState.set(deviceId, { ...deviceState.get(deviceId), ...next });
+        manualOverride.set(deviceId, { value: Boolean(on), since: next.updatedAt });
+
+        return { id: deviceId, ...next };
+    }
+
+    /** mock 데이터 초기화(개발용). 실제 백엔드에서는 no-op */
+    function resetMock() {
+        manualOverride.clear();
+        deviceState.forEach((value, key) => {
+            deviceState.set(key, { ...value, on: key === 'led', mode: 'auto', updatedAt: null });
+        });
+    }
+
+    const apiMode = API_CONFIG.useMock ? 'mock' : 'live';
+
+    /* ============================ js/chart.js ============================ */
+    /**
+     * =============================================================================
+     *  chart.js — 외부 라이브러리 없는 canvas 차트 렌더러
+     * =============================================================================
+     *  · line : 꺾은선 + 영역 채움 (온도/습도/광량/물온도)
+     *  · bar  : 막대 (작동 시간)
+     *  공통: devicePixelRatio 대응, 컨테이너 폭 변화 감지(ResizeObserver),
+     *        y축 자동 스케일, 축 눈금, 마지막 지점 하이라이트.
+     *
+     *  새 그래프 종류를 추가하려면 renderers 객체에 함수 하나만 더 넣으면 됩니다.
+     * =============================================================================
+     */
+
+
+
+    const PADDING = { top: 14, right: 12, bottom: 22, left: 42 };
+
+    /* ----------------------------- 스케일 계산 ----------------------------- */
+
+    function niceBounds(min, max, preferZero = false) {
+        if (!Number.isFinite(min) || !Number.isFinite(max)) return { min: 0, max: 1 };
+        if (min === max) {
+            const d = Math.abs(min) || 1;
+            return { min: min - d * 0.5, max: max + d * 0.5 };
+        }
+        let lo = preferZero ? Math.min(0, min) : min;
+        let hi = max;
+        const span = hi - lo;
+        lo -= span * 0.12;
+        hi += span * 0.12;
+        if (preferZero && lo < 0 && min >= 0) lo = 0;
+        const step = Math.pow(10, Math.floor(Math.log10(hi - lo))) / 2;
+        return {
+            min: Math.floor(lo / step) * step,
+            max: Math.ceil(hi / step) * step,
+        };
+    }
+
+    /* ----------------------------- 캔버스 준비 ----------------------------- */
+
+    function prepare(canvas, cssHeight) {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const width = Math.max(120, Math.floor(rect.width));
+        const height = cssHeight;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        canvas.style.height = `${height}px`;
+        const w = Math.floor(width * dpr);
+        const h = Math.floor(height * dpr);
+        if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+        }
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        const cssVar = getComputedStyle(document.documentElement);
+        return {
+            ctx,
+            width,
+            height,
+            plotW: width - PADDING.left - PADDING.right,
+            plotH: height - PADDING.top - PADDING.bottom,
+            colors: {
+                grid: cssVar.getPropertyValue('--grid').trim() || 'rgba(0,0,0,.1)',
+                text: cssVar.getPropertyValue('--muted').trim() || '#666',
+            },
+        };
+    }
+
+    /** x 좌표 매핑 함수 생성 */
+    function makeXScale(points, plotW) {
+        const n = points.length;
+        if (n <= 1) return () => PADDING.left + plotW / 2;
+        const step = plotW / (n - 1);
+        return (i) => PADDING.left + i * step;
+    }
+
+    /** y 좌표 매핑 함수 생성 */
+    function makeYScale(min, max, plotH) {
+        const span = max - min || 1;
+        return (v) => PADDING.top + plotH - ((v - min) / span) * plotH;
+    }
+
+    /** y축 눈금선 + 라벨 (5단계) */
+    function drawGridY(env, yScale, bounds, precision) {
+        const { ctx, plotW, colors } = env;
+        ctx.save();
+        ctx.strokeStyle = colors.grid;
+        ctx.fillStyle = colors.text;
+        ctx.lineWidth = 1;
+        ctx.font = '10px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        const steps = 4;
+        for (let i = 0; i <= steps; i += 1) {
+            const value = bounds.min + ((bounds.max - bounds.min) * i) / steps;
+            const y = Math.round(yScale(value)) + 0.5;
+            ctx.beginPath();
+            ctx.moveTo(PADDING.left, y);
+            ctx.lineTo(PADDING.left + plotW, y);
+            ctx.stroke();
+            ctx.fillText(formatNumber(value, precision > 1 ? 1 : 0), PADDING.left - 6, y);
+        }
+        ctx.restore();
+    }
+
+    /** x축 눈금 라벨 (최대 4개) */
+    function drawAxisX(env, points, xScale, axis) {
+        const { ctx, colors, width } = env;
+        ctx.save();
+        ctx.fillStyle = colors.text;
+        ctx.font = '10px system-ui, sans-serif';
+        ctx.textBaseline = 'top';
+
+        const count = Math.min(4, points.length);
+        if (count < 1) { ctx.restore(); return; }
+        const indices = [];
+        for (let i = 0; i < count; i += 1) {
+            indices.push(Math.round((i * (points.length - 1)) / Math.max(1, count - 1)));
+        }
+        const unique = [...new Set(indices)];
+        unique.forEach((idx, order) => {
+            const x = xScale(idx);
+            ctx.textAlign = order === 0 ? 'left' : order === unique.length - 1 ? 'right' : 'center';
+            const clamped = Math.max(PADDING.left, Math.min(width - PADDING.right, x));
+            ctx.fillText(formatTick(points[idx].t, axis), clamped, PADDING.top + env.plotH + 6);
+        });
+        ctx.restore();
+    }
+
+    /* ----------------------------- 렌더러 ----------------------------- */
+
+    function renderLine(canvas, series) {
+        const env = prepare(canvas, 148);
+        const { ctx, plotW, plotH } = env;
+        const points = series.points.filter((p) => p.v !== null && p.v !== undefined);
+        if (points.length === 0) return;
+
+        const values = points.map((p) => p.v);
+        const bounds = niceBounds(
+            series.yMin ?? Math.min(...values),
+            series.yMax ?? Math.max(...values),
+            series.yMin === 0,
+        );
+        const xScale = makeXScale(points, plotW);
+        const yScale = makeYScale(bounds.min, bounds.max, plotH);
+
+        drawGridY(env, yScale, bounds, series.precision);
+        drawAxisX(env, points, xScale, series.axis);
+
+        ctx.save();
+        ctx.beginPath();
+        points.forEach((p, i) => {
+            const x = xScale(i);
+            const y = yScale(p.v);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = series.color;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // 영역 채움
+        const last = xScale(points.length - 1);
+        const first = xScale(0);
+        ctx.lineTo(last, PADDING.top + plotH);
+        ctx.lineTo(first, PADDING.top + plotH);
+        ctx.closePath();
+        const gradient = ctx.createLinearGradient(0, PADDING.top, 0, PADDING.top + plotH);
+        gradient.addColorStop(0, hexToRgba(series.color, 0.22));
+        gradient.addColorStop(1, hexToRgba(series.color, 0.01));
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        ctx.restore();
+
+        // 마지막 값 마커
+        const lastPoint = points[points.length - 1];
+        const lx = xScale(points.length - 1);
+        const ly = yScale(lastPoint.v);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(lx, ly, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = series.color;
+        ctx.fill();
+        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function renderBar(canvas, series) {
+        const env = prepare(canvas, 148);
+        const { ctx, plotW, plotH } = env;
+        const points = series.points;
+        if (!points.length) return;
+
+        const values = points.map((p) => p.v ?? 0);
+        const bounds = niceBounds(0, Math.max(...values, 1), true);
+        const yScale = makeYScale(bounds.min, bounds.max, plotH);
+
+        drawGridY(env, yScale, bounds, 0);
+
+        const slot = plotW / points.length;
+        const barW = Math.max(2, Math.min(20, slot * 0.62));
+        const baseline = yScale(0);
+
+        points.forEach((p, i) => {
+            const value = p.v ?? 0;
+            const x = PADDING.left + slot * i + slot / 2;
+            const y = yScale(value);
+            const h = Math.max(value > 0 ? 1.5 : 0, baseline - y);
+            ctx.save();
+            ctx.fillStyle = value > 0 ? series.color : hexToRgba(series.color, 0.25);
+            const r = Math.min(3, barW / 2);
+            roundRect(ctx, x - barW / 2, y, barW, h, r);
+            ctx.fill();
+            ctx.restore();
+        });
+
+        drawAxisX(env, points, (i) => PADDING.left + slot * i + slot / 2, series.axis);
+    }
+
+    function renderEmpty(canvas, message) {
+        const env = prepare(canvas, 148);
+        const { ctx, width, height, colors } = env;
+        ctx.save();
+        ctx.fillStyle = colors.text;
+        ctx.font = '12px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(message, width / 2, height / 2);
+        ctx.restore();
+    }
+
+    /* ----------------------------- 공개 API ----------------------------- */
+
+    const renderers = { line: renderLine, bar: renderBar };
+
+    /**
+     * 캔버스에 시계열을 그립니다.
+     * @param {HTMLCanvasElement} canvas
+     * @param {object} series api.getSeries() 반환값 + { color, render, yMin, yMax }
+     */
+    function drawChart(canvas, series) {
+        if (!series) { renderEmpty(canvas, '데이터 없음'); return; }
+        const hasData = series.kind === 'analog'
+            ? (series.points?.length > 0)
+            : (series.points?.length > 0);
+        if (!hasData) { renderEmpty(canvas, '표시할 데이터가 없습니다'); return; }
+        const renderer = renderers[series.render] || renderLine;
+        renderer(canvas, series);
+    }
+
+    /** 컨테이너 폭이 바뀌면 다시 그리도록 옵저버 부착 */
+    function observeResize(canvas, redraw) {
+        let frame = 0;
+        const observer = new ResizeObserver(() => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(redraw);
+        });
+        observer.observe(canvas.parentElement);
+        return () => observer.disconnect();
+    }
+
+    /* ----------------------------- 헬퍼 ----------------------------- */
+
+    function roundRect(ctx, x, y, w, h, r) {
+        if (ctx.roundRect) {
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, r);
+            return;
+        }
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+
+    function hexToRgba(hex, alpha) {
+        const value = (hex || '#2f9e44').replace('#', '');
+        const full = value.length === 3 ? value.split('').map((c) => c + c).join('') : value;
+        const r = parseInt(full.slice(0, 2), 16) || 0;
+        const g = parseInt(full.slice(2, 4), 16) || 0;
+        const b = parseInt(full.slice(4, 6), 16) || 0;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    /* ============================ js/components/summaryCard.js ============================ */
+    /**
+     * components/summaryCard.js — "현재 상태" 요약 카드
+     * 큰 값 + 단위 + 직전 대비 증감. 전부 flex 로 배치되어 폭에 따라 재배치됩니다.
+     */
+
+
+
+    /**
+     * @param {object} metric config.js 의 metric 정의
+     * @returns {{el:HTMLElement, update:(value:number, previous:number, updatedAt:number)=>void}}
+     */
+    function createSummaryCard(metric) {
+        const valueEl = h('strong', { text: '--' });
+        const trendEl = h('span', { class: 'trend flat', text: '' });
+        const timeEl = h('span', { text: '' });
+
+        const el = h('article', { class: 'card summary-card' }, [
+            h('div', { class: 'card-title' }, [
+                h('span', { class: 'card-ico', text: metric.icon || '📈', 'aria-hidden': 'true' }),
+                h('h3', { text: metric.name }),
+            ]),
+            h('div', { class: 'summary-value' }, [
+                valueEl,
+                metric.unit ? h('span', { class: 'unit', text: metric.unit }) : null,
+            ]),
+            h('div', { class: 'summary-sub' }, [trendEl, timeEl]),
+        ]);
+
+        function update(value, previous, updatedAt) {
+            if (value === null || value === undefined) {
+                valueEl.textContent = '--';
+                trendEl.textContent = '';
+                timeEl.textContent = '';
+                return;
+            }
+            valueEl.textContent = formatNumber(value, metric.precision ?? 0);
+
+            const trend = trendOf(value, previous);
+            const arrow = trend.dir === 'up' ? '▲' : trend.dir === 'down' ? '▼' : '—';
+            trendEl.className = `trend ${trend.dir}`;
+            trendEl.textContent = trend.dir === 'flat'
+                ? '—'
+                : `${arrow} ${formatNumber(Math.abs(trend.delta), Math.max(1, metric.precision ?? 0))}`;
+            timeEl.textContent = updatedAt ? relativeTime(updatedAt) : '';
+        }
+
+        return { el, update };
+    }
+
+    /* ============================ js/components/chartCard.js ============================ */
+    /**
+     * components/chartCard.js — 연속값(analog) 그래프 카드
+     * 헤더의 live 값은 스냅샷 폴링마다 갱신되고, 그래프는 기간 변경 시 다시 그립니다.
+     */
+
+
+
+
+    /**
+     * @param {object} metric config.js 의 metric 정의
+     * @param {() => Promise<object>} loadSeries 기간별 시계열 로더
+     */
+    function createChartCard(metric, loadSeries) {
+        const liveValue = h('strong', { text: '--' });
+        const footLeft = h('span', { text: '—' });
+
+        const canvas = h('canvas', { role: 'img', 'aria-label': `${metric.name} 그래프` });
+        const wrap = h('div', { class: 'chart-wrap' }, [canvas]);
+
+        const el = h('article', { class: 'card' }, [
+            h('div', { class: 'card-head' }, [
+                h('div', { class: 'card-title' }, [
+                    h('span', { class: 'card-ico', text: metric.icon || '📈', 'aria-hidden': 'true' }),
+                    h('h3', { text: metric.name }),
+                ]),
+                h('div', { class: 'card-live' }, [
+                    liveValue,
+                    metric.unit ? h('span', { class: 'unit', text: metric.unit }) : null,
+                ]),
+            ]),
+            wrap,
+            h('div', { class: 'card-foot' }, [footLeft]),
+        ]);
+
+        let currentSeries = null;
+        const redraw = () => drawChart(canvas, currentSeries);
+        observeResize(canvas, redraw);
+
+        /** 기간별 데이터 로드 후 렌더 */
+        async function load() {
+            footLeft.textContent = '불러오는 중…';
+            const series = await loadSeries();
+            currentSeries = {
+                ...series,
+                color: metric.color,
+                render: metric.render,
+                yMin: metric.yMin,
+                yMax: metric.yMax,
+            };
+            footLeft.textContent = `${formatDateTime(series.start)} ~ ${formatDateTime(series.end)}`;
+            redraw();
+        }
+
+        /** 스냅샷 기반 live 값 갱신 */
+        function updateSnapshot(payload) {
+            if (!payload) return;
+            liveValue.textContent = formatNumber(payload.value, metric.precision ?? 0);
+        }
+
+        return { el, load, updateSnapshot, redraw };
+    }
+
+    /* ============================ js/components/timelineCard.js ============================ */
+    /**
+     * components/timelineCard.js — 이분법(켜짐/꺼짐) 타임라인 카드
+     * flex 로 늘어나는 세그먼트 바로 on/off 구간을 표현합니다.
+     * (화려한 그래프 대신 상태 비율을 한눈에 보는 것이 목적)
+     */
+
+
+
+    /**
+     * @param {object} metric config.js 의 metric 정의 (kind:'binary')
+     * @param {() => Promise<object>} loadSeries 기간별 세그먼트 로더
+     */
+    function createTimelineCard(metric, loadSeries) {
+        const onLabel = metric.onLabel || '켜짐';
+        const offLabel = metric.offLabel || '꺼짐';
+
+        const timeline = h('div', { class: 'timeline', role: 'img', 'aria-label': `${metric.name} 시간별 상태` });
+        const axis = h('div', { class: 'tl-axis' });
+        const legend = h('div', { class: 'legend' });
+        const footLeft = h('span', { text: '—' });
+
+        const el = h('article', { class: 'card' }, [
+            h('div', { class: 'card-head' }, [
+                h('div', { class: 'card-title' }, [
+                    h('span', { class: 'card-ico', text: metric.icon || '🔆', 'aria-hidden': 'true' }),
+                    h('h3', { text: metric.name }),
+                ]),
+                h('div', { class: 'card-live' }, [h('strong', { text: '--' })]),
+            ]),
+            timeline,
+            axis,
+            legend,
+            h('div', { class: 'card-foot' }, [footLeft]),
+        ]);
+
+        const stateEl = el.querySelector('.card-live strong');
+        const fmtTime = (ts) => {
+            const d = new Date(ts);
+            return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        };
+
+        async function load() {
+            footLeft.textContent = '불러오는 중…';
+            const series = await loadSeries();
+            const { segments, totals, start, end } = series;
+
+            // 세그먼트 → flex 자식 (flex-grow 를 지속시간 비율로 지정)
+            timeline.replaceChildren(
+                ...segments.map((seg) =>
+                    h('div', {
+                        class: `tl-seg ${seg.state ? 'on' : 'off'}`,
+                        style: {
+                            flexGrow: String(Math.max(seg.t1 - seg.t0, 1)),
+                            flexBasis: '0',
+                            '--seg-color': metric.color,
+                        },
+                        title: `${fmtTime(seg.t0)} ~ ${fmtTime(seg.t1)} ${seg.state ? onLabel : offLabel}`,
+                    }),
+                ),
+            );
+
+            axis.replaceChildren(
+                h('span', { text: fmtTime(start) }),
+                h('span', { text: '중간' }),
+                h('span', { text: fmtTime(end) }),
+            );
+
+            const onMin = totals.onMinutes;
+            const offMin = totals.offMinutes;
+            const total = totals.totalMinutes || 1;
+            const pct = (v) => `${Math.round((v / total) * 100)}%`;
+
+            legend.replaceChildren(
+                h('span', { class: 'legend-item' }, [
+                    h('span', { class: 'legend-swatch', style: { background: metric.color } }),
+                    `${onLabel} `,
+                    h('b', { text: formatDuration(onMin) }),
+                    h('span', { class: 'legend-pct', text: pct(onMin) }),
+                ]),
+                h('span', { class: 'legend-item' }, [
+                    h('span', {
+                        class: 'legend-swatch',
+                        style: { background: 'var(--surface-2)', border: '1px solid var(--border)' },
+                    }),
+                    `${offLabel} `,
+                    h('b', { text: formatDuration(offMin) }),
+                    h('span', { class: 'legend-pct', text: pct(offMin) }),
+                ]),
+            );
+
+            footLeft.textContent = `총 ${formatDuration(total)} 구간`;
+            stateEl.textContent = series.currentOn ? onLabel : offLabel;
+            stateEl.style.color = series.currentOn ? metric.color : '';
+        }
+
+        function updateSnapshot(payload) {
+            if (!payload || payload.state === undefined) return;
+            stateEl.textContent = payload.state ? onLabel : offLabel;
+            stateEl.style.color = payload.state ? metric.color : '';
+        }
+
+        return { el, load, updateSnapshot };
+    }
+
+    /* ============================ js/components/runtimeCard.js ============================ */
+    /**
+     * components/runtimeCard.js — 작동 시간(runtime) 카드
+     * 구간별 작동 "분"을 막대 그래프 + 합계/평균 요약으로 보여줍니다.
+     */
+
+
+
+
+    /**
+     * @param {object} metric config.js 의 metric 정의 (kind:'runtime')
+     * @param {() => Promise<object>} loadSeries
+     */
+    function createRuntimeCard(metric, loadSeries) {
+        const liveValue = h('strong', { text: '--' });
+        const totalEl = h('b', { text: '--' });
+        const avgEl = h('b', { text: '--' });
+        const footLeft = h('span', { text: '—' });
+
+        const canvas = h('canvas', { role: 'img', 'aria-label': `${metric.name} 막대 그래프` });
+        const wrap = h('div', { class: 'chart-wrap' }, [canvas]);
+
+        const el = h('article', { class: 'card' }, [
+            h('div', { class: 'card-head' }, [
+                h('div', { class: 'card-title' }, [
+                    h('span', { class: 'card-ico', text: metric.icon || '⏱️', 'aria-hidden': 'true' }),
+                    h('h3', { text: metric.name }),
+                ]),
+                h('div', { class: 'card-live' }, [liveValue, h('span', { class: 'unit', text: metric.unit })]),
+            ]),
+            wrap,
+            h('div', { class: 'legend' }, [
+                h('span', { class: 'legend-item' }, ['합계 ', totalEl]),
+                h('span', { class: 'legend-item' }, ['평균 ', avgEl]),
+            ]),
+            h('div', { class: 'card-foot' }, [footLeft]),
+        ]);
+
+        let currentSeries = null;
+        const redraw = () => drawChart(canvas, currentSeries);
+        observeResize(canvas, redraw);
+
+        async function load() {
+            footLeft.textContent = '불러오는 중…';
+            const series = await loadSeries();
+            currentSeries = {
+                ...series,
+                color: metric.color,
+                render: metric.render || 'bar',
+                yMin: 0,
+                yMax: null,
+            };
+
+            const values = series.points.map((p) => p.v ?? 0);
+            const total = values.reduce((a, b) => a + b, 0);
+            const avg = values.length ? total / values.length : 0;
+            const last = values.length ? values[values.length - 1] : null;
+
+            liveValue.textContent = last === null ? '--' : formatNumber(last, 0);
+            totalEl.textContent = formatDuration(total);
+            avgEl.textContent = `${formatNumber(avg, 1)}분`;
+            footLeft.textContent = `${values.length}개 구간 누적`;
+
+            redraw();
+        }
+
+        return { el, load, redraw };
+    }
+
+    /* ============================ js/components/controlCard.js ============================ */
+    /**
+     * components/controlCard.js — 장치 on/off 스위치 카드
+     * · 접근성: 실제 <input type="checkbox"> 를 시각적으로만 스위치처럼 스타일링
+     * · 낙관적 UI: 즉시 토글 → 실패 시 이전 상태로 롤백
+     * · 서버 응답의 updatedAt / mode 를 카드 하단에 표시
+     */
+
+
+
+    /**
+     * @param {object} device config.js 의 device 정의
+     * @param {(deviceId:string, on:boolean) => Promise<object>} onToggle 제어 요청
+     * @param {(msg:string, kind?:string) => void} [notify] 토스트 알림
+     */
+    function createControlCard(device, onToggle, notify) {
+        const input = h('input', {
+            type: 'checkbox',
+            role: 'switch',
+            'aria-label': `${device.name} 전원`,
+        });
+
+        const nameEl = h('strong', { text: device.name });
+        const subEl = h('span', { text: '—' });
+        const badge = h('span', { class: 'badge', text: 'AUTO' });
+        const stateText = h('span', { text: '상태 확인 중' });
+
+        const el = h('article', { class: 'card control-card', 'data-state': 'off' }, [
+            h('div', { class: 'control-top' }, [
+                h('div', { class: 'control-id' }, [
+                    h('span', { class: 'control-ico', text: device.icon || '🔌', 'aria-hidden': 'true' }),
+                    h('div', { class: 'control-name' }, [nameEl, subEl]),
+                ]),
+                h('label', { class: 'switch' }, [input, h('span', { class: 'switch-track' }, [h('span', { class: 'switch-thumb' })])]),
+            ]),
+            h('div', { class: 'control-foot' }, [badge, stateText]),
+        ]);
+
+        let serverState = null;   // 서버가 마지막으로 알려준 상태
+        let pending = false;      // 요청 진행 중 여부
+
+        function paint(on, updatedAt, mode) {
+            input.checked = on;
+            el.dataset.state = on ? 'on' : 'off';
+            badge.textContent = (mode || 'manual').toUpperCase();
+            badge.className = `badge ${on ? 'on' : ''} ${mode === 'manual' ? 'manual' : ''}`;
+            stateText.textContent = updatedAt ? `마지막 변경 ${relativeTime(updatedAt)}` : '변경 이력 없음';
+            subEl.textContent = `${device.channel} · ${on ? 'ON' : 'OFF'}`;
+        }
+
+        /** 스냅샷 등 외부에서 상태를 알려줄 때 (요청 중이면 낙관적 값 유지) */
+        function sync(state) {
+            if (!state) return;
+            serverState = state;
+            if (pending) return;
+            paint(Boolean(state.on), state.updatedAt, state.mode);
+        }
+
+        input.addEventListener('change', async () => {
+            const next = input.checked;
+            const previous = serverState ? Boolean(serverState.on) : !next;
+
+            pending = true;
+            input.disabled = true;
+            paint(next, Date.now(), 'manual'); // 낙관적 반영
+
+            try {
+                const result = await onToggle(device.id, next);
+                serverState = result;
+                paint(Boolean(result.on), result.updatedAt, result.mode);
+                if (notify) notify(`${device.name} ${result.on ? 'ON' : 'OFF'} 완료`);
+            } catch (error) {
+                serverState = { ...(serverState || {}), on: previous };
+                paint(previous, serverState.updatedAt, serverState.mode); // 롤백
+                if (notify) notify(`${device.name} 제어 실패: ${error.message}`, 'error');
+            } finally {
+                pending = false;
+                input.disabled = false;
+            }
+        });
+
+        return { el, sync };
+    }
+
+    /* ============================ js/app.js ============================ */
+    /**
+     * =============================================================================
+     *  app.js — 대시보드 부트스트랩 & 오케스트레이션
+     * =============================================================================
+     *  config.js 의 레지스트리를 읽어 화면을 "자동 조립"합니다.
+     *  따라서 새 센서/장치를 추가할 때 이 파일을 고칠 필요가 없습니다.
+     *
+     *  동작 방식
+     *   · 기간(10분/시간/일) 변경 또는 수동 새로고침 → 모든 카드의 시계열 재조회
+     *   · API_CONFIG.pollIntervalMs 주기로 스냅샷만 폴링 (그래프는 재조회하지 않음)
+     *   · 탭이 백그라운드로 가면 폴링 중단 → 배터리/트래픽 절약
+     * =============================================================================
+     */
+
+
+    const api = { getSnapshot, getSeries, getDevices, setDevice, resetMock, apiMode };
+
+
+
+
+
+
+
+    /* ============================ 전역 상태 ============================ */
+
+    const state = {
+        rangeId: DEFAULT_RANGE,
+        loading: false,
+        lastUpdatedAt: null,
+        online: true,
+    };
+
+    /** 컴포넌트 인스턴스 보관소 */
+    const widgets = {
+        summaries: [],
+        charts: [],
+        timelines: [],
+        runtimes: [],
+        controls: [],
+    };
+
+    /* ============================ 토스트 ============================ */
+
+    const toastEl = document.getElementById('toast');
+    let toastTimer = 0;
+
+    function notify(message, kind = 'info') {
+        toastEl.textContent = message;
+        toastEl.dataset.kind = kind;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+    }
+
+    /* ============================ DOM 참조 ============================ */
+
+    const dom = {
+        summary: document.getElementById('summary-cards'),
+        analog: document.getElementById('analog-cards'),
+        binary: document.getElementById('binary-cards'),
+        runtime: document.getElementById('runtime-cards'),
+        control: document.getElementById('control-cards'),
+        rangeBar: document.getElementById('range-bar'),
+        refreshBtn: document.getElementById('refresh-btn'),
+        connStatus: document.getElementById('conn-status'),
+        connText: document.getElementById('conn-text'),
+        lastUpdated: document.getElementById('last-updated'),
+        chartHint: document.getElementById('chart-hint'),
+        apiMode: document.getElementById('api-mode'),
+        pollInfo: document.getElementById('poll-info'),
+    };
+
+    /* ============================ 기간 선택 바 ============================ */
+
+    function buildRangeBar() {
+        dom.rangeBar.replaceChildren(
+            ...Object.values(RANGES).map((range) =>
+                h('button', {
+                    type: 'button',
+                    class: 'range-btn',
+                    'data-range': range.id,
+                    'aria-pressed': String(range.id === state.rangeId),
+                    text: range.label,
+                    onClick: () => selectRange(range.id),
+                }),
+            ),
+        );
+    }
+
+    function paintRangeBar() {
+        dom.rangeBar.querySelectorAll('.range-btn').forEach((btn) => {
+            btn.setAttribute('aria-pressed', String(btn.dataset.range === state.rangeId));
+        });
+        const range = RANGES[state.rangeId];
+        dom.chartHint.textContent = `${range.bucketCount}개 구간 · ${range.bucketMinutes >= 1440 ? '1일' : `${range.bucketMinutes}분`} 간격`;
+    }
+
+    async function selectRange(rangeId) {
+        if (!RANGES[rangeId] || rangeId === state.rangeId) return;
+        state.rangeId = rangeId;
+        paintRangeBar();
+        await loadSeries();
+    }
+
+    /* ============================ 화면 조립 ============================ */
+
+    function mount() {
+        // 1) 요약 카드 (연속값 지표의 현재값)
+        for (const metric of metricsByKind('analog').filter((m) => m.inSummary)) {
+            const card = createSummaryCard(metric);
+            widgets.summaries.push({ metric, card });
+            dom.summary.append(card.el);
+        }
+
+        // 2) 연속값 그래프
+        for (const metric of metricsByKind('analog')) {
+            const card = createChartCard(metric, () => loadMetricSeries(metric));
+            widgets.charts.push({ metric, card });
+            dom.analog.append(card.el);
+        }
+
+        // // 3) 이분법 타임라인
+        // for (const metric of metricsByKind('binary')) {
+        //   const card = createTimelineCard(metric, () => loadMetricSeries(metric));
+        //   widgets.timelines.push({ metric, card });
+        //   dom.binary.append(card.el);
+        // }
+
+        // // 4) 작동 시간 (runtime)
+        // for (const metric of metricsByKind('runtime')) {
+        //   const card = createRuntimeCard(metric, () => loadMetricSeries(metric));
+        //   widgets.runtimes.push({ metric, card });
+        //   dom.runtime.append(card.el);
+        // }
+
+        // // 5) 제어 스위치
+        // for (const device of DEVICES) {
+        //   const card = createControlCard(device, (deviceId, on) => api.setDevice(deviceId, on), notify);
+        //   widgets.controls.push({ device, card });
+        //   dom.control.append(card.el);
+        // }
+    }
+
+    /** 지표 하나의 시계열을 현재 기간으로 로드 */
+    async function loadMetricSeries(metric) {
+        const series = await api.getSeries(metric.id, state.rangeId);
+        // 이분법 카드의 현재 상태 표기를 위해 스냅샷 값도 얹어준다
+        if (metric.kind === 'binary' && metric.device) {
+            const snapshot = await api.getSnapshot();
+            series.currentOn = Boolean(snapshot.metrics[metric.id]?.state);
+        }
+        return series;
+    }
+
+    /* ============================ 데이터 로드 ============================ */
+
+    /** 전체 시계열 재조회 (기간 변경 / 수동 새로고침) */
+    async function loadSeries() {
+        if (state.loading) return;
+        state.loading = true;
+        dom.refreshBtn.classList.add('spinning');
+
+        try {
+            await Promise.all([
+                ...widgets.charts.map(({ card }) => card.load().catch(handleCardError)),
+                ...widgets.timelines.map(({ card }) => card.load().catch(handleCardError)),
+                ...widgets.runtimes.map(({ card }) => card.load().catch(handleCardError)),
+            ]);
+            await loadSnapshot();
+            setOnline(true);
+        } catch (error) {
+            setOnline(false);
+            notify(`데이터 로드 실패: ${error.message}`, 'error');
+        } finally {
+            state.loading = false;
+            dom.refreshBtn.classList.remove('spinning');
+        }
+    }
+
+    /** 현재값 스냅샷만 갱신 */
+    async function loadSnapshot() {
+        const snapshot = await api.getSnapshot();
+        state.lastUpdatedAt = snapshot.updatedAt;
+
+        for (const { metric, card } of widgets.summaries) {
+            const payload = snapshot.metrics[metric.id];
+            if (payload) card.update(payload.value, payload.previous, snapshot.updatedAt);
+        }
+        for (const { metric, card } of widgets.charts) {
+            card.updateSnapshot(snapshot.metrics[metric.id]);
+        }
+        for (const { metric, card } of widgets.timelines) {
+            const payload = snapshot.metrics[metric.id];
+            if (payload) card.updateSnapshot({ state: payload.state });
+        }
+        for (const { device, card } of widgets.controls) {
+            const payload = snapshot.devices.find((d) => d.id === device.id);
+            if (payload) card.sync(payload);
+        }
+
+        dom.lastUpdated.textContent = `갱신 ${relativeTime(snapshot.updatedAt)}`;
+        setOnline(true);
+    }
+
+    function handleCardError(error) {
+        console.error(error);
+        notify(`일부 데이터를 불러오지 못했습니다: ${error.message}`, 'error');
+    }
+
+    /* ============================ 연결 상태 표시 ============================ */
+
+    function setOnline(isOnline) {
+        state.online = isOnline;
+        dom.connStatus.dataset.state = isOnline ? 'online' : 'offline';
+        dom.connText.textContent = isOnline
+            ? `${api.apiMode === 'mock' ? 'Mock 데이터' : '서버 연결됨'}`
+            : '연결 끊김 — 재시도 중';
+    }
+
+    /* ============================ 폴링 ============================ */
+
+    let pollTimer = 0;
+
+    function startPolling() {
+        stopPolling();
+        if (API_CONFIG.pollIntervalMs <= 0) return;
+        pollTimer = setInterval(async () => {
+            if (document.hidden) return;
+            try {
+                await loadSnapshot();
+            } catch (error) {
+                setOnline(false);
+                console.warn('폴링 실패:', error.message);
+            }
+        }, API_CONFIG.pollIntervalMs);
+    }
+
+    function stopPolling() {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = 0;
+    }
+
+    /* ============================ 이벤트 ============================ */
+
+    function bindEvents() {
+        dom.refreshBtn.addEventListener('click', () => {
+            loadSeries().then(() => notify('새로고침 완료'));
+        });
+
+        // 탭 복귀 시 즉시 갱신 (백그라운드 동안 멈췄던 폴링 재개)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopPolling();
+            } else {
+                startPolling();
+                loadSnapshot().catch(() => setOnline(false));
+            }
+        });
+
+        // 다크/라이트 전환 시 캔버스 색상이 바뀌므로 다시 그리기
+        const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+        scheme.addEventListener?.('change', () => {
+            widgets.charts.forEach(({ card }) => card.redraw());
+            widgets.runtimes.forEach(({ card }) => card.redraw());
+        });
+
+        window.addEventListener('online', () => loadSnapshot().catch(() => {}));
+        window.addEventListener('offline', () => setOnline(false));
+    }
+
+    /* ============================ 시작 ============================ */
+
+    async function boot() {
+        dom.apiMode.textContent = `${api.apiMode === 'mock' ? 'Mock API' : 'Live API'} · ${API_CONFIG.baseUrl}`;
+
+        dom.pollInfo.innerHTML = ` ${Math.round(API_CONFIG.pollIntervalMs / 1000)}초 주기 폴링<br><br>
+[위험/⚠️적색] 하나라도 위험 범위를 벗어난 경우<br>
+- 기온(t): 18도 미만 또는 30도 초과 / 습도(h): 80% 이상<br>
+- 수온(wt): 15도 미만(성장 정지) 또는 25도 초과(뿌리 썩음/산소 부족)<br><br>
+[최적/🟢녹색] 모든 조건이 토마토가 가장 좋아하는 황금 비율일 때<br>
+- 기온(t): 22 ~ 28도 / 습도(h): 50 ~ 70%<br>
+- 수온(wt): 18 ~ 22도 (양액 내 용존산소와 양분 흡수 최적)<br><br>
+[주의/🟡황색] 위험은 아니지만 최적 상태도 아닌 애매한 구간 (예: 수온 16도, 기온 20도 등) `;
+
+
+        buildRangeBar();
+        paintRangeBar();
+        mount();
+        bindEvents();
+
+        await loadSeries();
+        startPolling();
+
+        // 디버깅/확장 편의: 콘솔에서 대시보드 상태 확인
+        window.smartfarm = { state, widgets, api, reload: loadSeries, notify };
+    }
+
+    boot().catch((error) => {
+        console.error(error);
+        dom.connStatus.dataset.state = 'offline';
+        dom.connText.textContent = '초기화 실패';
+        notify(`초기화 실패: ${error.message}`, 'error');
+    });
+
+
+</script>
 </body>
 </html>
