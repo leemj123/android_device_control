@@ -21,7 +21,6 @@ repositories {
 dependencies {
     // Spring Boot Starter (JPA 등 기존에 사용하시던 의존성)
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-restclient'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
@@ -34,7 +33,9 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
-    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+//    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+    // 기존 의존성들 (spring-boot-starter-data-jpa 등)은 그대로 유지합니다.
+    runtimeOnly 'org.postgresql:postgresql'
 
     // ==========================================
     // Spring Boot 4.x / Jakarta EE 환경용 QueryDSL 설정
