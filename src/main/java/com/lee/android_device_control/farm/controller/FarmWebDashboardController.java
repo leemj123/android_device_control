@@ -28,23 +28,23 @@ public class FarmWebDashboardController {
     ) {
         switch (target) {
             case "temperature" -> {
-                return farmWebDashboardService.sensorMetrics(target, range,"°C","analog",qSensorMetrics.airTempValue.avg());
+                return farmWebDashboardService.sensorMetrics(target, range,"°C","analog",qSensorMetrics.airTempValue);
             }
             case "humidity" -> {
-                return farmWebDashboardService.sensorMetrics(target, range,"%","analog",qSensorMetrics.humidityValue.avg());
+                return farmWebDashboardService.sensorMetrics(target, range,"%","analog",qSensorMetrics.humidityValue);
             }
             case "lux" -> {
-                return farmWebDashboardService.sensorMetrics(target, range,"lux","analog",qSensorMetrics.luxValue.avg());
+                return farmWebDashboardService.sensorMetrics(target, range,"lux","analog",qSensorMetrics.luxValue);
             }
             case "water_temp" -> {
-                return farmWebDashboardService.sensorMetrics(target, range,"°C","analog",qSensorMetrics.waterTempValue.avg());
+                return farmWebDashboardService.sensorMetrics(target, range,"°C","analog",qSensorMetrics.waterTempValue);
             }
-            case "led_state" -> {
-                return farmWebDashboardService.sensorMetrics(target, range,null,"binary",qSensorMetrics.onLed);
-            }
-            case "pump_state" -> {
-                return farmWebDashboardService.sensorMetrics(target, range,null,"binary",qSensorMetrics.onWaterPump);
-            }
+//            case "led_state" -> {
+//                return farmWebDashboardService.sensorMetrics(target, range,null,"binary",qSensorMetrics.onLed);
+//            }
+//            case "pump_state" -> {
+//                return farmWebDashboardService.sensorMetrics(target, range,null,"binary",qSensorMetrics.onWaterPump);
+//            }
 //            case "led_runtime" -> {
 //                targetColumn = qSensorMetrics.led;
 //                return farmWebDashboardService.sensorMetrics(range,"분",targetColumn);
