@@ -1,5 +1,5 @@
-# 1단계: 빌드 스테이지
-FROM gradle:8.5-jdk17 AS builder
+# 1단계: 빌드 스테이지 (기존 gradle:8.5에서 최신 버전인 8.14 이상으로 변경)
+FROM gradle:8.14-jdk17 AS builder
 WORKDIR /app
 
 # 빌드 캐시 활용을 위해 설정 파일들을 먼저 복사
