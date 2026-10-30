@@ -203,27 +203,50 @@ public class FarmWebDashboardService {
 //
 //    }
 
-    private DateTimeTemplate<LocalDateTime> groupOfTime(String range) {
-        return switch (range) {
-            // 10분 단위: AS CHAR를 AS String으로 변경합니다.
-            case "10m" -> Expressions.dateTimeTemplate(LocalDateTime.class,
-                    "STR_TO_DATE(CONCAT(DATE_FORMAT({0}, '%Y-%m-%d %H:'), LPAD(CAST(FLOOR(MINUTE({0}) / 10) * 10 AS String), 2, '0'), ':00'), '%Y-%m-%d %H:%i:%s')",
-                    qSensorMetrics.createTime
-            );
+//    private DateTimeTemplate<LocalDateTime> groupOfTime(String range) {
+//        return switch (range) {
+//            // 10분 단위: AS CHAR를 AS String으로 변경합니다.
+//            case "10m" -> Expressions.dateTimeTemplate(LocalDateTime.class,
+//                    "STR_TO_DATE(CONCAT(DATE_FORMAT({0}, '%Y-%m-%d %H:'), LPAD(CAST(FLOOR(MINUTE({0}) / 10) * 10 AS String), 2, '0'), ':00'), '%Y-%m-%d %H:%i:%s')",
+//                    qSensorMetrics.createTime
+//            );
+//
+//            // 1시간 단위
+//            case "1h" -> Expressions.dateTimeTemplate(LocalDateTime.class,
+//                    "STR_TO_DATE(DATE_FORMAT({0}, '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s')",
+//                    qSensorMetrics.createTime
+//            );
+//
+//            // 1일 단위
+//            case "1day", "1d" -> Expressions.dateTimeTemplate(LocalDateTime.class,
+//                    "STR_TO_DATE(DATE_FORMAT({0}, '%Y-%m-%d 00:00:00'), '%Y-%m-%d %H:%i:%s')",
+//                    qSensorMetrics.createTime
+//            );
+//
+//            default -> throw new IllegalArgumentException("지원하지 않는 시간 범위(range)입니다: " + range);
+//        };
+//    }
+private DateTimeTemplate<LocalDateTime> groupOfTime(String range) {
+    return switch (range) {
+        // 10분 단위: 10분 단위로 절삭하기 위해 date_trunc('hour')에 분을 계산해서 더해줍니다.
+        case "10m" -> Expressions.dateTimeTemplate(LocalDateTime.class,
+                "date_trunc('hour', {0}) + (floor(extract(minute from {0}) / 10) * 10 * interval '1 minute')",
+                qSensorMetrics.createTime
+        );
 
-            // 1시간 단위
-            case "1h" -> Expressions.dateTimeTemplate(LocalDateTime.class,
-                    "STR_TO_DATE(DATE_FORMAT({0}, '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s')",
-                    qSensorMetrics.createTime
-            );
+        // 1시간 단위: 분/초를 정직하게 00:00으로 날립니다.
+        case "1h" -> Expressions.dateTimeTemplate(LocalDateTime.class,
+                "date_trunc('hour', {0})",
+                qSensorMetrics.createTime
+        );
 
-            // 1일 단위
-            case "1day", "1d" -> Expressions.dateTimeTemplate(LocalDateTime.class,
-                    "STR_TO_DATE(DATE_FORMAT({0}, '%Y-%m-%d 00:00:00'), '%Y-%m-%d %H:%i:%s')",
-                    qSensorMetrics.createTime
-            );
+        // 1일 단위: 시간/분/초를 전부 00:00:00으로 날립니다.
+        case "1day", "1d" -> Expressions.dateTimeTemplate(LocalDateTime.class,
+                "date_trunc('day', {0})",
+                qSensorMetrics.createTime
+        );
 
-            default -> throw new IllegalArgumentException("지원하지 않는 시간 범위(range)입니다: " + range);
-        };
-    }
+        default -> throw new IllegalArgumentException("지원하지 않는 시간 범위(range)입니다: " + range);
+    };
+}
 }
