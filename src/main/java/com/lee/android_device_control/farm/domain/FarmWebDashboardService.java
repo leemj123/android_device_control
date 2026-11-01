@@ -103,10 +103,35 @@ public class FarmWebDashboardService {
                 .orderBy(rangeTemplate.asc())
                 .fetch();
 
+//        List<MetricsResponse.MetricsPoint> points = tuples.stream()
+//                .map(tuple -> {
+//                    LocalDateTime time = tuple.get(rangeTemplate);
+//                    long timeMile = time != null ? time.toInstant(ZoneOffset.UTC).toEpochMilli() : 0L;
+//
+//                    // 결과 추출 시 avgExpression을 사용
+//                    Double rawValue = tuple.get(avgExpression);
+//                    Float value = rawValue != null ? rawValue.floatValue() : null;
+//
+//                    return new MetricsResponse.MetricsPoint(timeMile, value);
+//                })
+//                .toList();
         List<MetricsResponse.MetricsPoint> points = tuples.stream()
                 .map(tuple -> {
-                    LocalDateTime time = tuple.get(rangeTemplate);
-                    long timeMile = time != null ? time.toInstant(ZoneOffset.UTC).toEpochMilli() : 0L;
+                    // 1. 우선 Object 타입으로 원본 데이터를 안전하게 추출합니다.
+                    Object rawTime = tuple.get(rangeTemplate);
+                    LocalDateTime time = null;
+
+                    // 2. 데이터 타입에 맞춰 안전하게 LocalDateTime으로 매핑합니다.
+                    if (rawTime instanceof java.sql.Timestamp) {
+                        // 데이터베이스 드라이버가 Timestamp로 던져준 경우 -> LocalDateTime으로 변환
+                        time = ((java.sql.Timestamp) rawTime).toLocalDateTime();
+                    } else if (rawTime instanceof LocalDateTime) {
+                        // 이미 LocalDateTime으로 들어온 경우 -> 그대로 캐스팅
+                        time = (LocalDateTime) rawTime;
+                    }
+
+                    // 3. 기존의 epoch 밀리초 변환 로직을 그대로 수행합니다.
+                    long timeMile = time != null ? time.toInstant(ZoneOffset.ofHours(9)).toEpochMilli() : 0L;
 
                     // 결과 추출 시 avgExpression을 사용
                     Double rawValue = tuple.get(avgExpression);
@@ -115,7 +140,6 @@ public class FarmWebDashboardService {
                     return new MetricsResponse.MetricsPoint(timeMile, value);
                 })
                 .toList();
-
         long startTime = 0L;
         long endTime = 0L;
         if (!points.isEmpty()) {
@@ -230,7 +254,7 @@ private DateTimeTemplate<LocalDateTime> groupOfTime(String range) {
     return switch (range) {
         // 10분 단위: 10분 단위로 절삭하기 위해 date_trunc('hour')에 분을 계산해서 더해줍니다.
         case "10m" -> Expressions.dateTimeTemplate(LocalDateTime.class,
-                "date_trunc('hour', {0}) + (floor(extract(minute from {0}) / 10) * 10 * interval '1 minute')",
+                "function('date_bin', '10 minutes', {0}, function('to_timestamp', '2000-01-01T00:00:00', 'YYYY-MM-DDTHH24:MI:SS'))",
                 qSensorMetrics.createTime
         );
 
